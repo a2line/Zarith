@@ -63,6 +63,7 @@ where options include:
 
 Environment variables that affect configuration:
   CC                   C compiler to use (default: try gcc, then cc)
+  AR                   archive tool to use (default: ar in system path)
   CFLAGS               extra flags to pass to the C compiler
   ASFLAGS              extra flags to pass to the assembler
   CPPFLAGS             extra includes, e.g. -I/path/to/gmp/include
@@ -210,7 +211,13 @@ searchbinreq $ocamldep
 searchbinreq $ocamlmklib
 searchbinreq $ocamldoc
 searchbin $ar
-if test $? -eq 0; then ar=$prefixnonocaml$ar; searchbinreq $ar; fi
+if test -n "$AR"; then
+  searchbinreq "$AR"
+  ar="$AR"
+else
+  searchbinreq $ar
+fi
+
 searchbinreq perl
 
 if test -n "$CC"; then
@@ -255,6 +262,9 @@ fi
 
 if test "$ocamllibdir" = "auto"
 then ocamllibdir=`ocamlc -where | sed 's/\r$//'`
+  if test "$OSTYPE" = "cygwin"; then
+    ocamllibdir="`cygpath -u $ocamllibdir | tr -d '\r'`/";
+  fi
 fi
 
 if test ! -f "$ocamllibdir/caml/mlvalues.h"
@@ -326,7 +336,7 @@ case $host in
     i486-*linux-gnu|i686-*linux-gnu|i486-kfreebsd-gnu)
         ccdef="-DZ_ELF -DZ_DOT_LABEL_PREFIX $ccdef"
         arch='i686';;
-    i686-*cygwin)
+    i686-*cygwin|x86_64-*cygwin)
         if test "x$wordsize" = "x64"; then
             ccdef="-DZ_COFF $ccdef"
             arch='x86_64_mingw64'
